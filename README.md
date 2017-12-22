@@ -57,10 +57,6 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
 
 考虑到在真正执行代理程序前，可能需要执行其他命令，我们建议用户使用 bash/python 脚本作为启动命令，我们在下面的示例中（如果需要）将使用脚本。
 
-### 基础思想
-
-sShare 配置的基础思想就是
-
 ### 基础模板
 
 基础的配置模板，其他的模板都将以修改本模板和创建本地脚本的方式来创建。本文件位于 Repo 或者 Release 包解压后的根目录中，文件名为 `config.example.json`。
@@ -216,6 +212,8 @@ iptables -A OUTPUT -t mangle -p tcp --sport 2000:2200 -j MARK --set-mark 9527 # 
 ```
 
 ### 防止 BT 下载
+
+最好实行，以保护自身vps的安全，参考 https://www.dwhd.org/20150915_162703.html 和 https://dreamcreator108.com/dreams/iptables-ban-bt/index.html 。
 
 ## API 说明
 
