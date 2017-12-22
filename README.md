@@ -18,9 +18,11 @@ sShare 的最初设计思想是“一人一进程，互相不干扰，来了开�
 
 且看图（图像使用 Microsoft Visio 创建）：
 
+!()[https://user-images.githubusercontent.com/7552030/34298930-1e712056-e75b-11e7-9979-e678db5f888a.png]
+
 ## 配置简解
 
-sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是示例配置文件及简解（注释）：
+sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是示例配置文件及简解（请不要直接复制，json不支持注释的）：
 
 ```json
 {
