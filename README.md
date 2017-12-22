@@ -18,7 +18,7 @@ sShare 的最初设计思想是“一人一进程，互相不干扰，来了开�
 
 且看图（图像使用 Microsoft Visio 创建）：
 
-!()[https://user-images.githubusercontent.com/7552030/34298930-1e712056-e75b-11e7-9979-e678db5f888a.png]
+![](https://user-images.githubusercontent.com/7552030/34298930-1e712056-e75b-11e7-9979-e678db5f888a.png)
 
 ## 配置简解
 
