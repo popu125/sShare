@@ -1,0 +1,24 @@
+{
+  "run_command": {
+    "cmd": "ssserver",
+    "arg": "-p {{port}} -k {{pass}}",
+    "enabled": true
+  },
+  "exit_command": {
+    "cmd": "ssserver",
+    "arg": "-p {{port}} -k {{pass}}",
+    "enabled": false
+  },
+  "captcha": {
+    "name": "base",
+    "site_id": "23333",
+    "extra": "66666"
+  },
+  "ttl": "20m",
+  "limit": 20,
+  "web_addr": ":9527",
+  "port_start": 2000,
+  "port_range": 200,
+  "rand_seed": 23343,
+  "no_check_alive": false
+}
