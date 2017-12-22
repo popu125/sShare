@@ -24,28 +24,28 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
 
 ```json
 {
-  "run_command": {   # 启动代理程序的配置，sShare会为每一个用户执行一次run_command
-    "cmd": "ssserver", # 命令
-    "arg": "-p {{port}} -k {{pass}}", # 参数，其中的{{port}}会被替换为端口，{{pass}}替换为密码，这两个参数都是随机生成的
-    "enabled": true # 是否启用，run_command必须启用
+  "run_command": {   // 启动代理程序的配置，sShare会为每一个用户执行一次run_command
+    "cmd": "ssserver", // 命令
+    "arg": "-p {{port}} -k {{pass}}", // 参数，其中的{{port}}会被替换为端口，{{pass}}替换为密码，这两个参数都是随机生成的
+    "enabled": true // 是否启用，run_command必须启用
   },
-  "exit_command": {  # 当程序退出时，sShare应执行的任务，通常为清理临时文件、临时防火墙规则等
-    "cmd": "exit", # 命令
-    "arg": "{{port}}", # 参数，exit_command的参数中只有{{port}}会被替换
-    "enabled": false # 是否启用，如果你不需要，你可以选择不启用exit_command
+  "exit_command": {  // 当程序退出时，sShare应执行的任务，通常为清理临时文件、临时防火墙规则等
+    "cmd": "exit", // 命令
+    "arg": "{{port}}", // 参数，exit_command的参数中只有{{port}}会被替换
+    "enabled": false // 是否启用，如果你不需要，你可以选择不启用exit_command
   },
-  "captcha": { # 验证码选项
-    "name": "base", # 验证码接口的名称，目前已实现的验证码见下方“配置示例”中“验证码”部分
-    "site_id": "23333", # Site ID，该属性的含义因接口而异，详见示例
-    "extra": "66666" # 额外数据，该属性的含义因接口而异，详见示例
+  "captcha": { // 验证码选项
+    "name": "base", // 验证码接口的名称，目前已实现的验证码见下方“配置示例”中“验证码”部分
+    "site_id": "23333", // Site ID，该属性的含义因接口而异，详见示例
+    "extra": "66666" // 额外数据，该属性的含义因接口而异，详见示例
   },
-  "ttl": "20m", # 一个用户在获取到账号后可以使用的时间，超时后对应的进程将被Kill，用户需要重新在web界面获取
-  "limit": 20, # 限制的最大用户数量
-  "web_addr": ":9527", # Web界面监听地址，使用"ip:port"可以指定监听ip，使用":port"监听所有ip，建议监听本地并使用Nginx反代
-  "port_start": 2000, # 分配端口起始值
-  "port_range": 200, # 分配端口范围，最终用户得到的端口将在[port_start, port_start+port_range]之间，请务必保证该范围内端口没有被占用
-  "rand_seed": 23343, # 随机种子，用于生成端口和密码，可以不设置
-  "no_check_alive": false # 运行代理程序时不检查是否存活，具体用途参考下面的“配置实例”
+  "ttl": "20m", // 一个用户在获取到账号后可以使用的时间，超时后对应的进程将被Kill，用户需要重新在web界面获取
+  "limit": 20, // 限制的最大用户数量
+  "web_addr": ":9527", // Web界面监听地址，使用"ip:port"可以指定监听ip，使用":port"监听所有ip，建议监听本地并使用Nginx反代
+  "port_start": 2000, // 分配端口起始值
+  "port_range": 200, // 分配端口范围，最终用户得到的端口将在[port_start, port_start+port_range]之间，请务必保证该范围内端口没有被占用
+  "rand_seed": 23343, // 随机种子，用于生成端口和密码，可以不设置
+  "no_check_alive": false // 运行代理程序时不检查是否存活，具体用途参考下面的“配置实例”
 }
 ```
 
