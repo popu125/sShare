@@ -131,52 +131,6 @@ Shadowsocks 的配置更少，也更容易完成，此处不再给出示例，�
 
 同上desu
 
-### 使用 iptables 进行（每用户）流量限制
-
-用于为不提供流量限制的代理后端添加相应的功能，基本思想是：
-
-> 在启动代理前使用 iptables 设置对应端口的流量策略，在退出代理时再进行清除。
-
-在使用这个模板时，我们需要用户创建一个 python 脚本文件，并赋予执行权限（`chmod a+x`），内容如下：
-
-```python
-#!/usr/bin/env python
-from __future__ import print_function
-import sys, os, subprocess
-
-PROXY_CMD="/path/to/your/program"
-port=sys.argv[2]
-
-def run_cmds(*cmds):
-	for cmd in cmds:
-		subprocess.call(cmd)
-
-if sys.argv[1] == "run":
-	run_cmds(
-        "iptables -A FORWARD -s 208.8.14.36 -m limit --limit 700/s -j ACCEPT",
-		PROXY_CMD+" "+" ".join(sys.argv[3:]),
-		)
-elif sys.argv[1] == "exit":
-	run_cmds(
-		"echo b", #todo
-		)
-```
-
-在这个脚本中我们实现了启停的逻辑，并要求程序提供端口作为第二个参数、将从第三个开始的参数传递给后端代理程序，当然这对于 sShare 来说完全不是问题，所以只需要在配置中做出对应的配置即可：
-
-```json
-"run_command": { 
-  "cmd": "/home/bobo/runproxy.py",
-  "arg": "run {{port}} -p {{port}} -k {{pass}}", 
-  "enabled": true
-},
-"exit_command": {
-  "cmd": "/home/bobo/runproxy.py",
-  "arg": "stop {{port}}",
-  "enabled": true
-},
-```
-
 ## Web 配置
 
 sShare 建议用户使用一个基于 ajax 技术实现的页面提供 web 服务，作者提供一个简单的使用 jq+bootstrap 实现的页面（vue真的好难，看了俩小时还是没搞懂啊）
