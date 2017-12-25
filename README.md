@@ -127,19 +127,67 @@ Shadowsocks 的配置更少，也更容易完成，此处不再给出示例，�
 
 考虑到用户少没人权，作者懒得写了，请参考上面ss的配置自行编写，谢谢❤
 
-### Brook
+### 使用 iptables 针对每个用户限制流量
 
-同上desu
+如果你选择了一个不提供流量限制的代理后端，你可能需要阅读这一段以添加相应的功能，其基本思想是：
+
+> 在启动代理前使用 iptables 设置对应端口的策略，在退出代理时再进行清除。
+
+在使用这个模板时，我们需要用户创建一个 python 脚本文件，并赋予执行权限（`chmod a+x`），内容如下：
+
+请将对应的代理后端指令更换为你的，并按照实际情况灵活修改（如流量限制）。
+
+> 请注意：该脚本可能需要以 root 权限运行，推荐使用将运行用户设为 sudoer，并在 iptables 命令前加 sudo 的方案来实现正常运行。
+
+```python
+#!/usr/bin/env python
+from __future__ import print_function
+import sys, os, subprocess
+
+PROXY_CMD="/path/to/your/program"
+QUOTA=1024*1024*1024 #1GBytes
+port=sys.argv[2]
+
+def run_cmds(*cmds):
+	for cmd in cmds:
+		subprocess.call(cmd)
+
+if sys.argv[1] == "run":
+	run_cmds(
+        "iptables -A OUTPUT -p tcp --dport %s -m quota --quota %s -j ACCEPT" % (port,QUOTA),
+        "iptables -A OUTPUT -p tcp --dport %s -j DROP" % port,
+		PROXY_CMD+" "+" ".join(sys.argv[3:]),
+		)
+elif sys.argv[1] == "exit":
+	run_cmds(
+		"iptables -D OUTPUT -p tcp --dport %s -m quota --quota %s -j ACCEPT" % (port,QUOTA),
+        "iptables -D OUTPUT -p tcp --dport %s -j DROP" % port,
+		)
+```
+
+在这个脚本中我们实现了启停的逻辑，并要求程序提供端口作为第二个参数、将从第三个开始的参数传递给后端代理程序，当然这对于 sShare 来说完全不是问题，所以只需要在配置中做出对应的配置即可：
+
+```json
+"run_command": { 
+  "cmd": "/home/bobo/runproxy.py",
+  "arg": "run {{port}} -p {{port}} -k {{pass}}", 
+  "enabled": true
+},
+"exit_command": {
+  "cmd": "/home/bobo/runproxy.py",
+  "arg": "stop {{port}}",
+  "enabled": true
+},
+```
+
 
 ## Web 配置
 
-sShare 建议用户使用一个基于 ajax 技术实现的页面提供 web 服务，作者提供一个简单的使用 jq+bootstrap 实现的页面（vue真的好难，看了俩小时还是没搞懂啊）
-
-关于这个简单页面的配置说明，请点击项目主页查看 readme：[sShare-simple](https://github.com/popu125/sShare-simple)
+sShare 提供了简单的 api，因此建议用户使用一个基于 ajax 技术实现的页面提供 web 服务，作者提供一个简单的使用 jq+bootstrap 实现的页面（vue真的好难，看了俩小时还是没搞懂啊）。
 
 只需要在 sShare 所在目录创建一个 static 目录，并将静态页面文件放入，他们就会正常工作在 sShare 的 web 服务端口。
 
-通常 sShare 的 release 包中已包括了这个简单的页面。
+通常 sShare 的 release 包中已包括了这个简单的页面和一个简单的生成器。
 
 ## 上线之前
 
@@ -151,7 +199,7 @@ sShare 建议用户使用一个基于 ajax 技术实现的页面提供 web 服�
 
 用于对全局（全部代理端口）进行限速，参考内容来自网络。命令如下：
 
-注意，请将下面的网卡名(eth0)，替换为自己的外网网卡名（通常来说，ovz是venet0，其他的是eth0）。
+注意，请将下面的网卡名(eth0)，替换为自己的外网网卡名（通常来说，ovz是venet0:0，其他的是eth0）。
 
 该规则会在 OS/iptables 重启后失效，如需要保持，可以通过`/etc/rc.local`做一个简单的开机自启。
 
