@@ -9,9 +9,8 @@
 
     <link rel="shortcut icon" href="img/logo.png">
 
-    <link rel="stylesheet" href="css/normalize.css">
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/custom.css">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/normalize/7.0.0/normalize.min.css">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
 </head>
 <body>
 <!--[if lte IE 9]>
@@ -30,7 +29,7 @@
         <div class="card-body">
             <h4 class="card-title">点击验证码，然后确认</h4>
             <div class="card-text" style="padding: 20px;" id="captcha">此处应有验证码</div>
-            <button href="#" class="btn btn-primary" id="get">获取</button>
+            <button href="#" class="btn btn-primary" id="get" onclick="infoGet()">获取</button>
         </div>
         <div class="card-footer text-muted" id="show">
             代理信息显示在这里
@@ -40,13 +39,13 @@
 </div>
 
 <input type="hidden" id="vtoken">
-<script src="js/vendor/modernizr-3.5.0.min.js"></script>
-<script src="js/vendor/jquery-3.2.1.min.js"></script>
-<script src="js/vendor/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js"></script>
 
 <script>
-    $("#get")[0].onclick = function (ev) {
-        var token = $("#vtoken")[0].innerHTML;
+    function infoGet(ev) {
+        var token = $("#vtoken")[0].value;
         if (token === "") {
             alert("请完成验证码。");
             return
@@ -89,7 +88,7 @@
     setInterval(loadServerStatus, 2000);
 
     var saveToken = function (token) {
-        $("#vtoken")[0].innerHTML = token;
+        $("#vtoken")[0].value = token;
     };
 </script>
 
@@ -125,6 +124,10 @@
             "\t\t<em>Loading Captcha...<br>\n" +
             "\t\tIf it doesn't load, please disable Adblock!</em>\n" +
             "\t</div>")
+</script>
+{{else}}
+<script>
+	$("#vtoken")[0].value = "base";
 </script>
 {{end}}
 </body>
