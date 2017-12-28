@@ -150,7 +150,7 @@ port=sys.argv[2]
 
 def run_cmds(*cmds):
 	for cmd in cmds:
-		subprocess.call(cmd)
+		subprocess.call(cmd.split(" "))
 
 if sys.argv[1] == "run":
 	run_cmds(
@@ -175,7 +175,7 @@ elif sys.argv[1] == "exit":
 },
 "exit_command": {
   "cmd": "/home/bobo/runproxy.py",
-  "arg": "stop {{port}}",
+  "arg": "exit {{port}}",
   "enabled": true
 },
 ```
