@@ -95,28 +95,30 @@ func (self *Pool) cleanup() {
 	clean_time := time.Now().Add(-self.ttl)
 	for n, p := range self.procs {
 		if (!self.nca && !p.alive) || p.start.Before(clean_time) {
-			self.lock.Lock()
-			if p.alive {
-				//p.cmd.Process.Kill()
-				p.cmd.Process.Signal(syscall.SIGTERM)
-			}
-			delete(self.procs, n)
-			self.count -= 1
-			self.lock.Unlock()
-			self.l.Println("CLEANUP", p.port, p.pass)
-
-			// After exit process
-
-			args := self.e_args
-			for i, a := range args {
-				switch a {
-				case "{{port}}":
-					args[i] = p.port
-				}
-			}
-			exec.Command(self.e_cmd, args...).Start()
+			self.remove(n, p)
 		}
 	}
+}
+
+func (self *Pool) remove(n uint, p *proc) {
+	self.lock.Lock()
+	if p.alive {
+		//p.cmd.Process.Kill()
+		p.cmd.Process.Signal(syscall.SIGTERM)
+	}
+	delete(self.procs, n)
+	self.count -= 1
+	self.lock.Unlock()
+	self.l.Println("CLEANUP", p.port, p.pass)
+
+	args := self.e_args
+	for i, a := range args {
+		switch a {
+		case "{{port}}":
+			args[i] = p.port
+		}
+	}
+	exec.Command(self.e_cmd, args...).Start()
 }
 
 func (self *Pool) Check(procid uint) bool {
@@ -148,6 +150,11 @@ func NewPool(conf config.Config, l log.Logger) *Pool {
 	}
 
 	go func() {
+		defer func() {
+			for n, pr := range p.procs {
+				p.remove(n, pr)
+			}
+		}()
 		for {
 			p.cleanup()
 			time.Sleep(cleanupDelay)
