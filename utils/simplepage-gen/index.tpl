@@ -11,6 +11,7 @@
 
     <link rel="stylesheet" href="https://cdn.bootcss.com/normalize/7.0.0/normalize.min.css">
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+    <style>#captcha>div{margin:0 auto;}</style>
 </head>
 <body>
 <!--[if lte IE 9]>
