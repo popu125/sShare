@@ -1,4 +1,4 @@
-# sShare
+# sShare  [![Build Status](https://travis-ci.org/popu125/sShare.svg?branch=master)](https://travis-ci.org/popu125/sShare)
 
 > 生活不止眼前的苟，还有身后的苟。
 
@@ -12,13 +12,46 @@ sShare 不是多服务器（机场）出售/管理工具，sShare 是为**单服
 
 sShare 在一定程度上考虑到了“回血”的需求，并且配备了两条路径：增加广告、或者使用挖矿验证码。通常我们建议您使用后者，尽管它收入较广告低得多得多得多得多，但是其准入门槛更低。
 
+
+
 ## 工作原理
 
-sShare 的最初设计思想是“一人一进程，互相不干扰，来了开进程，到期就杀掉（考虑到进程人道主义的影响势大，我们会考虑使用SIGTERM）”。
+sShare 的最初设计思想是“一人一进程，互相不干扰，来了开进程，到期就杀掉（考虑到进程人道主义的影响势大，我们放弃了使用SIGKILL这一早期思想，转而使用SIGTERM）”。
 
 且看图（图像使用 Microsoft Visio 创建）：
 
 ![](https://user-images.githubusercontent.com/7552030/34298930-1e712056-e75b-11e7-9979-e678db5f888a.png)
+
+
+
+## 快速开始
+
+通常来讲，最快的开局方式就是从 [release页面](https://github.com/popu125/sShare/releases) 下载一个 release 包，其中将包含有预编译好的二进制文件和一个配置文件模板和一个简单的静态页模板。
+
+不要忘记准备一个代理后端，这是非常重要的，这里以 ss-python 为例：
+
+`pip install shadowsocks`
+
+然后对配置文件`config.json`进行相应的修改：
+
+` nano config.json `
+
+使用配置文件生成简单的服务页，别忘了自己修改一下其中的“更多信息”：
+
+```bash
+mkdir static
+cd utils
+cp ../config.json ./
+./simplepage-gen -name 网站名字 -desc 你的简介 -l 代理主机地址
+cp index.html ../static/
+cd ..
+```
+
+试试直接执行，现在 sShare 应该已经在`9527`端口服务了！
+
+`./sShare`
+
+在能够运行之后，请务必继续阅读下面的内容，以对 sShare 进行了解，做出更完善的配置。
 
 ## 配置简解
 
@@ -43,11 +76,11 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
   },
   "ttl": "20m", // 一个用户在获取到账号后可以使用的时间，超时后对应的进程将被Kill，用户需要重新在web界面获取
   "limit": 20, // 限制的最大用户数量
-  "web_addr": ":9527", // Web界面监听地址，使用"ip:port"可以指定监听ip，使用":port"监听所有ip，建议监听本地并使用Nginx反代
+  "web_addr": ":9527", // Web界面监听地址，使用"ip:port"可以指定监听ip，使用":port"监听所有ip，建议监听本地(127.0.0.1)并使用Nginx反代
   "port_start": 2000, // 分配端口起始值
   "port_range": 200, // 分配端口范围，最终用户得到的端口将在[port_start, port_start+port_range]之间，请务必保证该范围内端口没有被占用
-  "rand_seed": 23343, // 随机种子，用于生成端口和密码，可以不设置
-  "no_check_alive": false // 运行代理程序时不检查是否存活，具体用途参考下面的“配置实例”
+  "rand_seed": 23343, // 随机种子，可以不设置
+  "no_check_alive": false // 运行代理程序时不检查是否存活，具体用途参考下面的“配置示例”中ssr mujson部分
 }
 ```
 
@@ -67,10 +100,10 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
 
 **注意**：在您使用验证码前，您可能需要访问对应的主页以获取验证码接口所需要的参数。
 
-- base - 根本没有验证码，参数可以随便设置。
+- base - 根本没有验证码，参数可以随便设置，**如果您未正确配置验证码的名字，则默认为base**。
 - coinbase - 最著名的挖矿验证码，site_id 参数代表 secret_id，extra 参数为您想要用户为您挖的 hash 数（hash 的含义不再做科普，请自行搜索）。要使用该验证码，请访问 https://coinbase.com 注册并创建一个 site。
 - ppoi - 全称 ProjectPoi，coinbase 的仿制品，相比而言ppoi收取的手续费更低，ppoi 是目前第三大 xmr 验证码平台，由国人创建并运营，官网也是中文版。ppoi 的参数含义与coinbase是一致的。要使用该验证码，请访问 https://ppoi.org 注册并创建一个 site。
-- recaptcha.v2 - 由谷歌提供的验证码服务，被认为是目前较为安全的验证码。在此处 site_id 输入 Site key，extra 设置为 Secret key。要使用 recaptcha 验证码，请先访问 https://www.google.com/recaptcha/admin 创建一个 site，目前 sShare 仅提供 v2 版本支持。
+- recaptcha - 由谷歌提供的验证码服务，被认为是目前较为安全的验证码。在此处 site_id 输入 Site key，extra 设置为 Secret key。要使用 recaptcha 验证码，请先访问 https://www.google.com/recaptcha/admin 创建一个 site。
 
 ### ShadowsocksR
 
@@ -117,11 +150,17 @@ SSR 在后来的 mu（manyuser）版本中添加了用于用户管理的脚本`m
 },
 ```
 
+但切记还需要配置一个nca：
+
+```json
+"no_check_alive": true
+```
+
 ### Shadowsocks
 
-Shadowsocks 原分支并没有“贴心”的用户限制/限速服务，如果需要，请在阅读完本段后下翻至“基于 iptables 的端口连接限制和流量限制”段落。
+Shadowsocks 原分支并没有“贴心”的用户限制/限速服务，如果需要，请在阅读完本段后下翻至“使用 iptables 针对每个用户限制流量”段落。
 
-Shadowsocks 的配置更少，也更容易完成，此处不再给出示例，请参照 SSR（非 mujson）的配置和注释自行修改。
+Shadowsocks 的配置更少，也更容易完成（通常我们也不建议直接使用Shadowsocks，至少要加个流量限制吧），此处不再给出示例，请参照 SSR（非 mujson）的配置和注释自行修改。
 
 ### Brook
 
@@ -170,7 +209,7 @@ elif sys.argv[1] == "exit":
 ```json
 "run_command": { 
   "cmd": "/home/bobo/runproxy.py",
-  "arg": "run {{port}} -p {{port}} -k {{pass}}", 
+  "arg": "run {{port}} -p {{port}} -k {{pass}} -m aes-128-gcm", 
   "enabled": true
 },
 "exit_command": {
@@ -181,13 +220,16 @@ elif sys.argv[1] == "exit":
 ```
 
 
+
 ## Web 配置
 
 sShare 提供了简单的 api，因此建议用户使用一个基于 ajax 技术实现的页面提供 web 服务，作者提供一个简单的使用 jq+bootstrap 实现的页面（vue真的好难，看了俩小时还是没搞懂啊）。
 
 只需要在 sShare 所在目录创建一个 static 目录，并将静态页面文件放入，他们就会正常工作在 sShare 的 web 服务端口。
 
-通常 sShare 的 release 包中已包括了这个简单的页面和一个简单的生成器。
+通常 sShare 的 release 包中已包括了这个简单的页面和一个简单的生成器。您只需遵照上面"快速开始"章节对其进行初始化和修改就可以使用了。
+
+
 
 ## 上线之前
 
@@ -195,7 +237,12 @@ sShare 提供了简单的 api，因此建议用户使用一个基于 ajax 技术
 
 在上线时使用 Nginx 反代 sShare 的 Web 服务有助于更好地管理服务器上的 Web 服务，实现按域名提供内容，添加SSL等。
 
-### 使用 iptables+tc 进行限速
+通常为了安全地进行这一步，我们需要：
+
+- 将配置文件中的监听地址由":9527"修改为"127.0.0.1:9527"，以防止用户直接访问 sShare 本身。
+- 在nginx中打开access log，或在nginx的配置中将客户端ip传递到sShare后端。
+
+### 使用 iptables+tc 进行全局限速
 
 用于对全局（全部代理端口）进行限速，参考内容来自网络。命令如下：
 
@@ -216,6 +263,19 @@ iptables -A OUTPUT -t mangle -p tcp --sport 2000:2200 -j MARK --set-mark 9527 # 
 ### 防止 BT 下载
 
 最好实行，以保护自身vps的安全，参考 https://www.dwhd.org/20150915_162703.html 和 https://dreamcreator108.com/dreams/iptables-ban-bt/index.html 。
+
+上面两篇文章也无法实现较高的安全性需求，如果要使用更加激进的策略，请：
+
+```bash
+# 添加已知用途的"安全"端口白名单，在下面的命令中选择适合你的一条运行（或者添加自己的端口白名单），将这里的2000:2200修改为你在config中设置的端口范围。
+iptables -A OUTPUT -p tcp --sport 2000:2200 --dport 80,443 -j ACCEPT # 如果仅允许访问网页
+iptables -A OUTPUT -p tcp --sport 2000:2200 --dport 80,443,21,22,3389 -j ACCEPT # 还允许ftp/ssh/远程桌面
+
+# 禁止对其他的非白名单端口的访问
+iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
+```
+
+
 
 ## API 说明
 
@@ -244,6 +304,8 @@ iptables -A OUTPUT -t mangle -p tcp --sport 2000:2200 -j MARK --set-mark 9527 # 
 | Port | 端口    |
 | Pass | 密码    |
 
+
+
 ## 日志说明
 
 sShare 有一个极其简陋的日志系统，在未指定日志保存文件时，日志会被输出到标准错误管道，而当你使用`-l [文件名]`参数指定保存文件后，日志会被保存在文件中。
@@ -270,8 +332,16 @@ sShare 有一个极其简陋的日志系统，在未指定日志保存文件时�
 -  `ERR_FULL` 为用户池已满，后面的数据同样为访问者的地址。
 -  `ACCEPT` 为成功分配代理，后面的数据分别是：访问者地址、端口、密码。
 
+
+
+## 目前问题
+
+现在让我最懵逼的问题就是为什么会出来一批僵尸进程。。。难道必须SIGKILL才行么
+
+
+
 ## LICENSE
 
-AGPL 3.0，我们要求您保留原作者的LICENSE，同时您对该程序做出的任何修改（无论是用于分发还是仅提供服务）都必须开源。
+AGPL 3.0，我们要求您保留原作者的LICENSE，同时您对该程序做出的任何修改（无论是用于分发还是仅提供服务）都必须以同样的协议开源。
 
-额外条款：禁止商用。（尽管这破程序也不太适合商用的样子就是了）
+额外条款：禁止商用。（尽管这破程序也不适合商用的样子就是了）
