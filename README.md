@@ -268,8 +268,8 @@ iptables -A OUTPUT -t mangle -p tcp --sport 2000:2200 -j MARK --set-mark 9527 # 
 
 ```bash
 # 添加已知用途的"安全"端口白名单，在下面的命令中选择适合你的一条运行（或者添加自己的端口白名单），将这里的2000:2200修改为你在config中设置的端口范围。
-iptables -A OUTPUT -p tcp --sport 2000:2200 --dport 80,443 -j ACCEPT # 如果仅允许访问网页
-iptables -A OUTPUT -p tcp --sport 2000:2200 --dport 80,443,21,22,3389 -j ACCEPT # 还允许ftp/ssh/远程桌面
+for i in 80 443; do iptables -A OUTPUT -p tcp --sport 2000:2200 --dport $i -j ACCEPT ; done # 如果仅允许访问网页
+for i in 80 443 21 22 3389; do iptables -A OUTPUT -p tcp --sport 2000:2200 --dport $i -j ACCEPT ; done # 还允许ftp/ssh/远程桌面
 
 # 禁止对其他的非白名单端口的访问
 iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
@@ -297,12 +297,19 @@ iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
 | ----- | -------- |
 | token | 验证码服务返回值 |
 
-如果验证通过则创建服务并返回一个 JSON 类型的返回值：
+该请求将返回一个 JSON 类型的返回值：
 
 | Key  | Value |
 | ---- | ----- |
+| Status | 状态  |
 | Port | 端口    |
 | Pass | 密码    |
+
+其中状态码含义如下：
+
+ - `ERR_NO_CAPTCHA`: 验证码未通过
+ - `ERR_FULL`: 用户池已满
+ - `ACCEPT`: 成功分配
 
 
 
