@@ -175,28 +175,25 @@ V2Ray 要实现多用户多端口（同时还要考虑到不能重启现有进�
 
 ```python
 #!/usr/bin/env python3
-from __future__ import print_function
-import sys, os, subprocess, json
+import sys, os, subprocess, json, shlex
 
 PROXY_CMD="/path/to/your/program"
 CONF_PATH="/tmp/sshare/"
 CONF_TPL="/tmp/sshare/tpl.conf"
 
-action,port,pw=sys.argv[1:4]
+port, pw = sys.argv[1:3]
 
-def run_cmds(*cmds):
-	for cmd in cmds:
-		subprocess.call(cmd.split(" "))
+def run_p(cmd,data):
+    p = subprocess.Popen(shlex.split(cmd), stdin=subprocess.PIPE, encoding="u8")
+    json.dump(data, p.stdin)
+    p.stdin.close()
+    p.wait()
 
-if action=="start":
-    with open(CONF_TPL) as tpl:
-        c = json.load(tpl)
-    with open(CONF_PATH+str(port)+".conf","w") as f:
-        c["inbound"]["settings"]["clients"][0]["id"] = pw
-        json.dump(f)
-    run_cmds(PROXY_CMD+"-config "+CONFIG_PATH+str(port)+".conf")
-else:
-    os.remove(CONFIG_PATH+str(port)+".conf")
+with open(CONF_TPL) as tpl:
+    c = json.load(tpl)
+c["inbound"]["settings"]["clients"][0]["id"] = pw
+c["inbound"]["port"] = port
+run_p(PROXY_CMD+"-config stdin", c)
 ```
 
 配置项可参考下面“[使用 iptables 针对每个用户限制流量](#使用 iptables 针对每个用户限制流量)”段落。由于 V2Ray 的特别机制，请记得启用`gen_uuid`选项。
