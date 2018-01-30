@@ -15,6 +15,20 @@ func newPass() string {
 	return string(pass)
 }
 
+func newUUID() string {
+	const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	uuid := []byte("")
+	for i := 36; i > 0; i-- {
+		switch i {
+		case 27, 22, 17, 12:
+			uuid = append(uuid, 45) // 45 is "-"
+		default:
+			uuid = append(uuid, chars[rand.Intn(36)])
+		}
+	}
+	return string(uuid)
+}
+
 type transInfo struct {
 	Status string
 	Port   int

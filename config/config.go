@@ -46,6 +46,7 @@ type Config struct {
 	PortRange uint32      `json:"port_range"`
 
 	NoCheckAlive bool `json:"no_check_alive"`
+	GenUUID      bool `json:"gen_uuid"`
 
 	TTL time.Duration
 }

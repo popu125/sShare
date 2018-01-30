@@ -26,19 +26,27 @@ type ApiServe struct {
 	portLimit int
 
 	l *log.Logger
+
+	passGen func() string
 }
 
 func NewApiServe(conf config.Config, l log.Logger) *ApiServe {
 	p := pool.NewPool(conf, l)
 	captcha := NewCaptcha(conf.Captcha)
 	l.SetPrefix("[WEB] ")
-	return &ApiServe{
+	api := &ApiServe{
 		pool:      p,
 		captcha:   captcha,
 		portStart: int(conf.PortStart),
 		portLimit: int(conf.PortRange),
 		l:         &l,
 	}
+	if !conf.GenUUID {
+		api.passGen = newPass
+	} else {
+		api.passGen = newUUID
+	}
+	return api
 }
 
 func (self *ApiServe) serveCount(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +78,8 @@ OUT:
 		}
 		break
 	}
-	pass := newPass()
+
+	pass := self.passGen()
 
 	self.plock.Unlock()
 	status := self.pool.NewProc(strconv.Itoa(port), pass)

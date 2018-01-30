@@ -55,9 +55,9 @@ cd ..
 
 ## 配置简解
 
-sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是示例配置文件及简解（请不要直接复制，json不支持注释的）：
+sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是示例配置文件及简解：
 
-```json
+```json5
 {
   "run_command": {   // 启动代理程序的配置，sShare会为每一个用户执行一次run_command
     "cmd": "ssserver", // 命令
@@ -74,13 +74,14 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
     "site_id": "23333", // Site ID，该属性的含义因接口而异，详见示例
     "extra": "66666" // 额外数据，该属性的含义因接口而异，详见示例
   },
-  "ttl": "20m", // 一个用户在获取到账号后可以使用的时间，超时后对应的进程将被Kill，用户需要重新在web界面获取
+  "ttl": "20m", // 一个用户在获取到账号后可以使用的时间，超时后对应的进程将被Kill，用户需要重新在web界面获取，单位可以为s（秒），m（分），h（时）
   "limit": 20, // 限制的最大用户数量
   "web_addr": ":9527", // Web界面监听地址，使用"ip:port"可以指定监听ip，使用":port"监听所有ip，建议监听本地(127.0.0.1)并使用Nginx反代
   "port_start": 2000, // 分配端口起始值
   "port_range": 200, // 分配端口范围，最终用户得到的端口将在[port_start, port_start+port_range]之间，请务必保证该范围内端口没有被占用
   "rand_seed": 23343, // 随机种子，可以不设置
-  "no_check_alive": false // 运行代理程序时不检查是否存活，具体用途参考下面的“配置示例”中ssr mujson部分
+  "no_check_alive": false, // 运行代理程序时不检查是否存活，具体用途参考下面的“配置示例”中ssr mujson部分
+  "gen_uuid": false // 在生成密码时生成一个UUID，用于V2Ray服务端
 }
 ```
 
@@ -164,7 +165,48 @@ Shadowsocks 的配置更少，也更容易完成（通常我们也不建议直�
 
 ### Brook
 
-考虑到用户少没人权，作者懒得写了，请参考上面ss的配置自行编写，谢谢❤
+因为 Brook 的启动与 ss 一样简单，故不再给出示例。
+
+### V2Ray
+
+V2Ray 同样没有提供“贴心”的用户限制/限速服务，如果需要，请在阅读完本段后下翻至“使用 iptables 针对每个用户限制流量”段落。
+
+V2Ray 要实现多用户多端口（同时还要考虑到不能重启现有进程以免影响）就需要多个配置文件，这时我们可以通过一个脚本来实现生成配置+启动的过程：
+
+```python
+#!/usr/bin/env python3
+from __future__ import print_function
+import sys, os, subprocess, json
+
+PROXY_CMD="/path/to/your/program"
+CONF_PATH="/tmp/sshare/"
+CONF_TPL="/tmp/sshare/tpl.conf"
+
+action,port,pw=sys.argv[1:4]
+
+def run_cmds(*cmds):
+	for cmd in cmds:
+		subprocess.call(cmd.split(" "))
+
+if action=="start":
+    with open(CONF_TPL) as tpl:
+        c = json.load(tpl)
+    with open(CONF_PATH+str(port)+".conf","w") as f:
+        c["inbound"]["settings"]["clients"][0]["id"] = pw
+        json.dump(f)
+    run_cmds(PROXY_CMD+"-config "+CONFIG_PATH+str(port)+".conf")
+else:
+    os.remove(CONFIG_PATH+str(port)+".conf")
+```
+
+配置项可参考下面“[使用 iptables 针对每个用户限制流量](#使用 iptables 针对每个用户限制流量)”段落。由于 V2Ray 的特别机制，请记得启用`gen_uuid`选项。
+
+同时同端口多用户也是可行的，方案给出思路如下：
+
+- start脚本中插入client项，stop删除，同时重启服务器。
+- 多个服务器后端使用ws，设置不同的path，然后使用Nginx反代。
+
+
 
 ### 使用 iptables 针对每个用户限制流量
 
@@ -299,11 +341,11 @@ iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
 
 该请求将返回一个 JSON 类型的返回值：
 
-| Key  | Value |
-| ---- | ----- |
-| Status | 状态  |
-| Port | 端口    |
-| Pass | 密码    |
+| Key    | Value |
+| ------ | ----- |
+| Status | 状态    |
+| Port   | 端口    |
+| Pass   | 密码    |
 
 其中状态码含义如下：
 
