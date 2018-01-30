@@ -1,4 +1,9 @@
-dist/
-*.exe
 .idea/
+
+dist/
 test/
+*.exe
+*.gz
+
+config.json
+*.html
