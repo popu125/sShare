@@ -2,10 +2,10 @@ package config
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"time"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"time"
 )
 
 func LoadConfig(fn string) Config {
@@ -45,8 +45,8 @@ type Config struct {
 	PortStart uint32      `json:"port_start"`
 	PortRange uint32      `json:"port_range"`
 
+	AntiCC       bool `json:"anti_cc"`
 	NoCheckAlive bool `json:"no_check_alive"`
-	GenUUID      bool `json:"gen_uuid"`
 
 	TTL time.Duration
 }

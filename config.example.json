@@ -1,12 +1,12 @@
 {
   "run_command": {
     "cmd": "ssserver",
-    "arg": "-p {{port}} -k {{pass}}",
+    "arg": "-p {{.Port}} -k {{.Pass ss_pass}}",
     "enabled": true
   },
   "exit_command": {
-    "cmd": "ssserver",
-    "arg": "-p {{port}} -k {{pass}}",
+    "cmd": "kill",
+    "arg": "ssserver -p {{.Port}}",
     "enabled": false
   },
   "captcha": {
@@ -20,6 +20,5 @@
   "port_start": 2000,
   "port_range": 200,
   "rand_seed": 23343,
-  "no_check_alive": false,
-  "gen_uuid": false
+  "no_check_alive": false
 }

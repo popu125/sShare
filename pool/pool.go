@@ -2,10 +2,9 @@ package pool
 
 import (
 	"log"
-	"os/exec"
-	"strings"
 	"sync"
 	"sync/atomic"
+	"text/template"
 	"time"
 
 	"github.com/popu125/sShare/config"
@@ -13,29 +12,10 @@ import (
 
 const (
 	cleanupDelay = 5 * time.Second
-
-	ERR_FULL = iota
-	ERR_SPAWN
-	DONE
 )
 
-type proc struct {
-	cmd   *exec.Cmd
-	start time.Time
-	alive bool
-
-	port string
-	pass string
-}
-
-func (self *proc) Watch() {
-	self.alive = true
-	self.cmd.Run()
-	self.alive = false
-}
-
 type Pool struct {
-	procs map[uint]*proc
+	procs map[int]*proc
 	count uint32
 	limit uint32
 	lock  sync.RWMutex
@@ -43,108 +23,41 @@ type Pool struct {
 	l     *log.Logger
 	nca   bool // No Check Alive
 
-	lastid uint
-	errMap map[uint]uint
+	ports     *sync.Map //TODO: check if works
+	portStart int
+	portLimit int
+
+	errMap map[int]int
 
 	cmd       string
-	args      []string
+	arg       *template.Template
 	e_cmd     string
-	e_args    []string
+	e_arg     *template.Template
 	e_enabled bool
 }
 
-func (self Pool) Count() uint32 {
-	return atomic.LoadUint32(&self.count)
+func (pool Pool) Count() uint32 {
+	return atomic.LoadUint32(&pool.count)
 }
 
-func (self *Pool) NewProc(port string, pass string) uint {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-	if self.count >= self.limit {
-		return ERR_FULL
-	}
-
-	self.count += 1
-	args := self.args
-	for i, a := range args {
-		switch a {
-		case "{{pass}}":
-			args[i] = pass
-		case "{{port}}":
-			args[i] = port
+func (pool *Pool) cleanup() {
+	clean_time := time.Now().Add(-pool.ttl)
+	for n, p := range pool.procs {
+		if (!pool.nca && !p.alive) || p.start.Before(clean_time) {
+			pool.remove(n, p)
 		}
-	}
-	np := exec.Command(self.cmd, args...)
-	p := &proc{
-		cmd:   np,
-		start: time.Now(),
-		port:  port, pass: pass,
-	}
-
-	self.lastid += 1
-	procid := self.lastid
-	self.procs[procid] = p
-	go self.run(procid)
-
-	self.l.Println("PROC_SPAWN", port, pass)
-	return procid
-}
-
-func (self *Pool) cleanup() {
-	clean_time := time.Now().Add(-self.ttl)
-	for n, p := range self.procs {
-		if (!self.nca && !p.alive) || p.start.Before(clean_time) {
-			self.remove(n, p)
-		}
-	}
-}
-
-func (self *Pool) remove(n uint, p *proc) {
-	self.lock.Lock()
-	if p.alive {
-		p.cmd.Process.Kill()
-	}
-	delete(self.procs, n)
-	self.count -= 1
-	self.lock.Unlock()
-	self.l.Println("CLEANUP", p.port, p.pass)
-
-	args := self.e_args
-	for i, a := range args {
-		switch a {
-		case "{{port}}":
-			args[i] = p.port
-		}
-	}
-	exec.Command(self.e_cmd, args...).Start()
-}
-
-func (self *Pool) Check(procid uint) bool {
-	p := self.procs[procid]
-	if p == nil {
-		return false
-	} else {
-		return p.alive
-	}
-}
-
-func (self *Pool) run(procid uint) {
-	p := self.procs[procid]
-	go p.Watch()
-	if !p.alive {
-		self.errMap[procid] = ERR_SPAWN
-	} else {
-		self.errMap[procid] = DONE
 	}
 }
 
 func NewPool(conf config.Config, l log.Logger) *Pool {
 	l.SetPrefix("[POOL] ")
-	args, eargs := strings.Split(conf.RunCmd.Arg, " "), strings.Split(conf.ExitCmd.Arg, " ")
+	arg, earg := template.Must(template.New("arg").Parse(conf.RunCmd.Arg)), template.Must(template.New("earg").Parse(conf.ExitCmd.Arg))
 	p := &Pool{
-		procs: map[uint]*proc{}, count: 0, lastid: 10, errMap: map[uint]uint{},
-		limit: conf.Limit, ttl: conf.TTL, cmd: conf.RunCmd.Cmd, args: args, nca: conf.NoCheckAlive,
-		e_cmd: conf.ExitCmd.Cmd, e_args: eargs, e_enabled: conf.ExitCmd.Enabled, l: &l,
+		procs: map[int]*proc{}, count: 0, errMap: map[int]int{},
+		limit: conf.Limit, ttl: conf.TTL, cmd: conf.RunCmd.Cmd, arg: arg, nca: conf.NoCheckAlive,
+		e_cmd: conf.ExitCmd.Cmd, e_arg: earg, e_enabled: conf.ExitCmd.Enabled, l: &l,
+		portStart: int(conf.PortStart), portLimit: int(conf.PortRange),
+		ports: new(sync.Map),
 	}
 
 	go func() {
@@ -160,4 +73,10 @@ func NewPool(conf config.Config, l log.Logger) *Pool {
 	}()
 
 	return p
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
