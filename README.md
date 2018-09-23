@@ -104,7 +104,6 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
 
 - base - 根本没有验证码，参数可以随便设置，**如果您未正确配置验证码的名字，则默认为base**。
 - coinbase - 最著名的挖矿验证码，site_id 参数代表 secret_id，extra 参数为您想要用户为您挖的 hash 数（hash 的含义不再做科普，请自行搜索）。要使用该验证码，请访问 https://coinbase.com 注册并创建一个 site。
-- ppoi - 全称 ProjectPoi，coinbase 的仿制品，相比而言ppoi收取的手续费更低，ppoi 是目前第三大 xmr 验证码平台，由国人创建并运营，官网也是中文版。ppoi 的参数含义与coinbase是一致的。要使用该验证码，请访问 https://ppoi.org 注册并创建一个 site。
 - recaptcha - 由谷歌提供的验证码服务，被认为是目前较为安全的验证码。在此处 site_id 输入 Site key，extra 设置为 Secret key。要使用 recaptcha 验证码，请先访问 https://www.google.com/recaptcha/admin 创建一个 site。
 
 ### ShadowsocksR
