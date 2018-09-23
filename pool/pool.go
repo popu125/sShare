@@ -1,13 +1,12 @@
 package pool
 
 import (
-	"os/exec"
-	"time"
-	"sync/atomic"
-	"sync"
 	"log"
+	"os/exec"
 	"strings"
-	"syscall"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/popu125/sShare/config"
 )
@@ -15,7 +14,7 @@ import (
 const (
 	cleanupDelay = 5 * time.Second
 
-	ERR_FULL  = iota
+	ERR_FULL = iota
 	ERR_SPAWN
 	DONE
 )
@@ -103,8 +102,7 @@ func (self *Pool) cleanup() {
 func (self *Pool) remove(n uint, p *proc) {
 	self.lock.Lock()
 	if p.alive {
-		//p.cmd.Process.Kill()
-		p.cmd.Process.Signal(syscall.SIGTERM)
+		p.cmd.Process.Kill()
 	}
 	delete(self.procs, n)
 	self.count -= 1
