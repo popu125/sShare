@@ -81,10 +81,17 @@ sShare 的配置方式为单 json 文件，文件名为`config.json`。下面是
   "port_range": 200, // 分配端口范围，最终用户得到的端口将在[port_start, port_start+port_range]之间，请务必保证该范围内端口没有被占用
   "rand_seed": 23343, // 随机种子，可以不设置
   "no_check_alive": false, // 运行代理程序时不检查是否存活，具体用途参考下面的“配置示例”中ssr mujson部分
+  "safe": { // 安全特性们
+      "anti_cc": true,  // 反CC（大概有用？）
+      "city_check": true,  // 检测访问的源ip所在地级市
+      "city_name": "Beijing", // 检测的城市名称
+      "city_file":"/path/to/your/file.datx", // IPIP的DATX库文件路径
+      "cdn_enabled": false  // 是否开启了CDN或使用Nginx反代（如果开启则需要提取xff）
+  }
 }
 ```
 
-需要注意的是 sShare 目前使用`text/template`包实现可替换的参数模板，并支持多密码和多uuid同时生成，使用`{{.Port}}`替换端口，使用`{{.Pass pass_name}}`和`{{.UUID uuid_name}}`来生成一个密码，所有生成的密码将被返回，详情参阅api部分。
+需要注意的是 sShare 目前使用`text/template`包实现可替换的参数模板，并支持多密码和多uuid同时生成，使用`{{.Port}}`替换端口，使用`{{.Pass \"pass_name\"}}`和`{{.UUID \"uuid_name\"}}`来生成一个密码，所有生成的密码将被返回，所有同名的密码都将是一致的，详情参阅api部分。
 
 
 
@@ -324,7 +331,7 @@ iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
 
 请求类型：`POST`
 
-直接请求即可得到目前已分配的客户端数量。
+直接请求即可得到目前已分配的客户端数量。当开启反CC时，该接口也可能会收到`{"Status":"ERR_ANTICC"}`，应在收到后刷新页面。
 
 ### /api/new
 
@@ -341,12 +348,13 @@ iptables -A OUTPUT -p tcp --sport 2000:2200 -j DROP
 | Key    | Value |
 | ------ | ----- |
 | Status | 状态    |
-| Info   | JSON形式的返回，包含`pass_map`和`uuid_map`两个hashmap，和一个Port |
+| Info   | JSON字典形式的返回，包含`pass_map`和`uuid_map`两个hashmap，和一个Port |
 
 其中状态码含义如下：
 
  - `ERR_NO_CAPTCHA`: 验证码未通过
  - `ERR_FULL`: 用户池已满
+ - `ERR_ANTICC`: 触发反CC，应在收到后刷新页面
  - `ACCEPT`: 成功分配
 
 
@@ -377,6 +385,10 @@ sShare 有一个极其简陋的日志系统，在未指定日志保存文件时�
 -  `ERR_FULL` 为用户池已满，后面的数据同样为访问者的地址。
 -  `ACCEPT` 为成功分配代理，后面的数据分别是：访问者地址、端口。
 
+
+## 其他的
+
+本 Readme 内容严重不全且有待更新，请使用时参考程序源码。
 
 
 ## LICENSE

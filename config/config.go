@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func LoadConfig(fn string) Config {
+func LoadConfig(fn string) *Config {
 	data, err := ioutil.ReadFile(fn)
 	check(err)
 	conf := Config{}
@@ -24,7 +24,7 @@ func LoadConfig(fn string) Config {
 		fmt.Println("Port range settings illegal, please check your config.")
 		os.Exit(1)
 	}
-	return conf
+	return &conf
 }
 
 func check(err error) {
@@ -45,8 +45,8 @@ type Config struct {
 	PortStart uint32      `json:"port_start"`
 	PortRange uint32      `json:"port_range"`
 
-	AntiCC       bool `json:"anti_cc"`
-	NoCheckAlive bool `json:"no_check_alive"`
+	Safe         SafeConf `json:"safe"`
+	NoCheckAlive bool     `json:"no_check_alive"`
 
 	TTL time.Duration
 }
@@ -61,4 +61,12 @@ type CmdConf struct {
 	Cmd     string `json:"cmd"`
 	Arg     string `json:"arg"`
 	Enabled bool   `json:"enabled"`
+}
+
+type SafeConf struct {
+	AntiCC     bool   `json:"anti_cc"`
+	CityCheck  bool   `json:"city_check"`
+	CityName   string `json:"city_name"`
+	CityFile   string `json:"city_file"`
+	CDNEnabled bool   `json:"cdn_enabled"`
 }

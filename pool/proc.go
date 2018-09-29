@@ -5,8 +5,8 @@ import (
 	"errors"
 	"math/rand"
 	"os/exec"
-	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,8 +15,9 @@ type proc struct {
 	start time.Time
 	alive bool
 
-	port string
-	info string
+	port    int
+	info    string
+	argData *runArgData
 }
 
 func (p *proc) Watch() {
@@ -25,55 +26,61 @@ func (p *proc) Watch() {
 	p.alive = false
 }
 
-func (pool *Pool) NewProc() (int, string, error) {
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
+func (pool *Pool) NewProc() (int, *runArgData, error) {
 	if pool.count >= pool.limit {
-		return 0, "", errors.New("Error: Full")
+		return 0, nil, errors.New("Error: Full")
 	}
 
 	var port int
 	for {
 		port = pool.portStart + rand.Intn(pool.portLimit)
 		if na, ok := pool.ports.Load(port); !ok || !na.(bool) {
+			pool.ports.Store(port, true)
 			break
 		}
 	}
-	ports := strconv.Itoa(port)
 
-	pool.count += 1
-	g := newArgData(ports)
-	buf := new(bytes.Buffer) //TODO: There should be checked carefully
-	check(pool.arg.Execute(buf, g))
+	atomic.AddUint32(&pool.count, 1)
+	argData := newArgData(port)
+	buf := new(bytes.Buffer)
+	check(pool.arg.Execute(buf, argData))
 	args := strings.Split(buf.String(), " ")
-	info := g.Data()
+	info := argData.Data()
 
 	np := exec.Command(pool.cmd, args...)
 	p := &proc{
 		cmd:   np,
 		start: time.Now(),
-		port:  ports, info: info,
+		port:  port, info: info,
+		argData: argData,
 	}
 
-	pool.procs[port] = p
+	pool.procs.Store(port, p)
 	go p.Watch()
 
-	pool.l.Println("PROC_SPAWN", ports, info)
-	return port, info, nil
+	pool.logger.Println("PROC_SPAWN", port, info)
+	return port, argData, nil
 }
 
-func (pool *Pool) remove(n int, p *proc) {
-	pool.lock.Lock()
+func (pool *Pool) remove(port int) {
+	var p *proc
+	if tmpProc, ok := pool.procs.Load(port); ok {
+		p = tmpProc.(*proc)
+	} else {
+		return
+	}
+
 	if p.alive {
 		p.cmd.Process.Kill()
 	}
-	delete(pool.procs, n)
-	pool.count -= 1
-	pool.lock.Unlock()
-	pool.l.Println("CLEANUP", p.port, p.info)
+
+	pool.ports.Delete(port)
+	pool.procs.Delete(port)
+	atomic.AddUint32(&pool.count, ^uint32(0))
+	pool.logger.Println("REMOVE", p.port, p.info)
 
 	buf := new(bytes.Buffer)
-	check(pool.e_arg.Execute(buf, newExitArgData(p.port)))
+	check(pool.e_arg.Execute(buf, p.argData))
 	args := strings.Split(buf.String(), " ")
 	exec.Command(pool.e_cmd, args...).Start()
 }
