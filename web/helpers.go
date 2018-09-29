@@ -7,7 +7,7 @@ import (
 type transInfo struct {
 	Status string
 	Port   int
-	Pass   string
+	Pass   interface{}
 }
 
 func (self transInfo) Json() []byte {

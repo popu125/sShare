@@ -15,15 +15,14 @@ const (
 )
 
 type Pool struct {
-	procs map[int]*proc
-	count uint32
-	limit uint32
-	lock  sync.RWMutex
-	ttl   time.Duration
-	l     *log.Logger
-	nca   bool // No Check Alive
+	procs  *sync.Map
+	count  uint32
+	limit  uint32
+	ttl    time.Duration
+	logger *log.Logger
+	nca    bool // No Check Alive
 
-	ports     *sync.Map //TODO: check if works
+	ports     *sync.Map
 	portStart int
 	portLimit int
 
@@ -42,37 +41,43 @@ func (pool Pool) Count() uint32 {
 
 func (pool *Pool) cleanup() {
 	clean_time := time.Now().Add(-pool.ttl)
-	for n, p := range pool.procs {
-		if (!pool.nca && !p.alive) || p.start.Before(clean_time) {
-			pool.remove(n, p)
+	pool.procs.Range(func(port, p interface{}) bool {
+		if !pool.nca && !p.(*proc).alive {
+			pool.logger.Println("PROC_DEAD", port)
+			pool.remove(port.(int))
+		} else if p.(*proc).start.Before(clean_time) {
+			pool.logger.Println("TIMED_OUT", port)
+			pool.remove(port.(int))
 		}
-	}
+		return true
+	})
 }
 
-func NewPool(conf config.Config, l log.Logger) *Pool {
+func NewPool(conf *config.Config, l log.Logger) *Pool {
 	l.SetPrefix("[POOL] ")
 	arg, earg := template.Must(template.New("arg").Parse(conf.RunCmd.Arg)), template.Must(template.New("earg").Parse(conf.ExitCmd.Arg))
-	p := &Pool{
-		procs: map[int]*proc{}, count: 0, errMap: map[int]int{},
+	pool := &Pool{
+		procs: new(sync.Map), count: 0, errMap: map[int]int{},
 		limit: conf.Limit, ttl: conf.TTL, cmd: conf.RunCmd.Cmd, arg: arg, nca: conf.NoCheckAlive,
-		e_cmd: conf.ExitCmd.Cmd, e_arg: earg, e_enabled: conf.ExitCmd.Enabled, l: &l,
+		e_cmd: conf.ExitCmd.Cmd, e_arg: earg, e_enabled: conf.ExitCmd.Enabled, logger: &l,
 		portStart: int(conf.PortStart), portLimit: int(conf.PortRange),
 		ports: new(sync.Map),
 	}
 
 	go func() {
 		defer func() {
-			for n, pr := range p.procs {
-				p.remove(n, pr)
-			}
+			pool.procs.Range(func(port, p interface{}) bool {
+				pool.remove(port.(int))
+				return true
+			})
 		}()
 		for {
-			p.cleanup()
+			pool.cleanup()
 			time.Sleep(cleanupDelay)
 		}
 	}()
 
-	return p
+	return pool
 }
 
 func check(err error) {

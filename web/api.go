@@ -11,11 +11,12 @@ import (
 type ApiServe struct {
 	pool    *pool.Pool
 	captcha Captcha
+	conf    *config.Config
 
 	l *log.Logger
 }
 
-func NewApiServe(conf config.Config, l log.Logger) *ApiServe {
+func NewApiServe(conf *config.Config, l log.Logger) *ApiServe {
 	p := pool.NewPool(conf, l)
 	captcha := NewCaptcha(conf.Captcha)
 	l.SetPrefix("[WEB] ")
@@ -23,6 +24,7 @@ func NewApiServe(conf config.Config, l log.Logger) *ApiServe {
 		pool:    p,
 		captcha: captcha,
 		l:       &l,
+		conf:    conf,
 	}
 
 	return api

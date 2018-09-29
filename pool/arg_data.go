@@ -13,10 +13,10 @@ type runArgData struct {
 	PassMap map[string]string `json:"pass_map"`
 	UUIDMap map[string]string `json:"uuid_map"`
 
-	Port string `json:"port"`
+	Port int `json:"port"`
 }
 
-func newArgData(port string) *runArgData {
+func newArgData(port int) *runArgData {
 	return &runArgData{
 		PassMap: make(map[string]string, 64),
 		UUIDMap: make(map[string]string, 64),
@@ -61,12 +61,4 @@ func (g runArgData) Data() string {
 	} else {
 		return string(tmp)
 	}
-}
-
-type exitArgData struct {
-	Port string
-}
-
-func newExitArgData(port string) *exitArgData {
-	return &exitArgData{Port: port}
 }
