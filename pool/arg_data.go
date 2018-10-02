@@ -16,7 +16,7 @@ type runArgData struct {
 	Port int `json:"port"`
 }
 
-func newArgData(port int) *runArgData {
+func NewArgData(port int) *runArgData {
 	return &runArgData{
 		PassMap: make(map[string]string, 64),
 		UUIDMap: make(map[string]string, 64),

@@ -41,7 +41,7 @@ func (pool *Pool) NewProc() (int, *runArgData, error) {
 	}
 
 	atomic.AddUint32(&pool.count, 1)
-	argData := newArgData(port)
+	argData := NewArgData(port)
 	buf := new(bytes.Buffer)
 	check(pool.arg.Execute(buf, argData))
 	args := strings.Split(buf.String(), " ")
