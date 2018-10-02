@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"net/http"
-	"log"
 	"fmt"
-	"time"
+	"log"
 	"math/rand"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/popu125/sShare/config"
 	"github.com/popu125/sShare/web"
@@ -31,7 +31,8 @@ func main() {
 	}
 
 	conf := config.LoadConfig(*confFn)
-	api := web.NewApiServe(conf, *l)
+	api, pool := web.NewApiServe(conf, *l)
+	defer pool.Purge()
 	route := web.GetRouter(api)
 	rand.Seed(time.Now().Unix() + conf.RandSeed)
 

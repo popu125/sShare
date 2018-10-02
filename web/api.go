@@ -16,7 +16,7 @@ type ApiServe struct {
 	l *log.Logger
 }
 
-func NewApiServe(conf *config.Config, l log.Logger) *ApiServe {
+func NewApiServe(conf *config.Config, l log.Logger) (*ApiServe, *pool.Pool) {
 	p := pool.NewPool(conf, l)
 	captcha := NewCaptcha(conf.Captcha)
 	l.SetPrefix("[WEB] ")
@@ -27,7 +27,7 @@ func NewApiServe(conf *config.Config, l log.Logger) *ApiServe {
 		conf:    conf,
 	}
 
-	return api
+	return api, p
 }
 
 func (apis *ApiServe) serveCount(w http.ResponseWriter, r *http.Request) {

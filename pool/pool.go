@@ -11,7 +11,9 @@ import (
 )
 
 const (
-	cleanupDelay = 5 * time.Second
+	cleanDeadDelay     = 5 * time.Second
+	cleanTimedOutDelay = 1 * time.Minute
+	maxDuration        = 1<<63 - 1
 )
 
 type Pool struct {
@@ -33,22 +35,58 @@ type Pool struct {
 	e_cmd     string
 	e_arg     *template.Template
 	e_enabled bool
+
+	latestDuration time.Duration
 }
 
 func (pool Pool) Count() uint32 {
 	return atomic.LoadUint32(&pool.count)
 }
 
-func (pool *Pool) cleanup() {
-	clean_time := time.Now().Add(-pool.ttl)
+func (pool *Pool) cleanDead() {
 	pool.procs.Range(func(port, p interface{}) bool {
 		if !pool.nca && !p.(*proc).alive {
 			pool.logger.Println("PROC_DEAD", port)
 			pool.remove(port.(int))
-		} else if p.(*proc).start.Before(clean_time) {
+		}
+		return true
+	})
+}
+
+func (pool *Pool) cleanTimedOut(now time.Time) {
+	var latestDuration time.Duration = maxDuration
+	pool.procs.Range(func(port, p interface{}) bool {
+		duration := now.Sub(p.(*proc).start)
+		if duration > pool.ttl {
 			pool.logger.Println("TIMED_OUT", port)
 			pool.remove(port.(int))
+		} else if duration < latestDuration {
+			latestDuration = duration
 		}
+		return true
+	})
+	pool.latestDuration = latestDuration
+}
+
+func (pool *Pool) cleaner() {
+	go func() {
+		ticker := time.NewTicker(cleanDeadDelay)
+		for range ticker.C {
+			pool.cleanDead()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(cleanTimedOutDelay)
+		for now := range ticker.C {
+			pool.cleanTimedOut(now)
+		}
+	}()
+}
+
+func (pool *Pool) Purge() {
+	pool.procs.Range(func(port, p interface{}) bool {
+		pool.remove(port.(int))
 		return true
 	})
 }
@@ -61,21 +99,9 @@ func NewPool(conf *config.Config, l log.Logger) *Pool {
 		limit: conf.Limit, ttl: conf.TTL, cmd: conf.RunCmd.Cmd, arg: arg, nca: conf.NoCheckAlive,
 		e_cmd: conf.ExitCmd.Cmd, e_arg: earg, e_enabled: conf.ExitCmd.Enabled, logger: &l,
 		portStart: int(conf.PortStart), portLimit: int(conf.PortRange),
-		ports: new(sync.Map),
+		ports: new(sync.Map), latestDuration: 0,
 	}
-
-	go func() {
-		defer func() {
-			pool.procs.Range(func(port, p interface{}) bool {
-				pool.remove(port.(int))
-				return true
-			})
-		}()
-		for {
-			pool.cleanup()
-			time.Sleep(cleanupDelay)
-		}
-	}()
+	pool.cleaner()
 
 	return pool
 }
